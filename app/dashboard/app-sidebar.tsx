@@ -47,6 +47,11 @@ const data = {
       icon: IconDashboard,
     },
     {
+      title: "Issue Review",
+      url: "/dashboard/issue-review",
+      icon: IconListDetails,
+    },
+    {
       title: "Payment gated",
       url: "/dashboard/payment-gated",
       icon: IconSparkles,
