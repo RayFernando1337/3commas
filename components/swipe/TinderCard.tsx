@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { motion, useMotionValue, useTransform, animate } from "motion/react";
+import { motion, useMotionValue, useTransform, animate, useMotionValueEvent } from "motion/react";
 import { cn } from "@/lib/utils";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
 
@@ -18,10 +18,11 @@ export type TinderCardProps = {
   renderBadges?: boolean;
   children: React.ReactNode;
   threshold?: number; // in px; default 120
+  onDragProgress?: (progress: number) => void; // -1..1 based on x / threshold
 };
 
 export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
-  ({ className, onSwipe, renderBadges = true, children, threshold = 120 }, ref) => {
+  ({ className, onSwipe, renderBadges = true, children, threshold = 120, onDragProgress }, ref) => {
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-240, 0, 240], [-10, 0, 10]);
     const scale = useTransform(x, [-200, 0, 200], [1.02, 1, 1.02]);
@@ -32,6 +33,13 @@ export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
 
     const isExitingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Notify parent about drag progress for background animations
+    useMotionValueEvent(x, "change", (latest) => {
+      const denom = threshold * 1.2;
+      const normalized = Math.max(-1, Math.min(1, latest / (denom || 1)));
+      onDragProgress?.(normalized);
+    });
 
     function completeSwipe(direction: SwipeDirection) {
       if (isExitingRef.current) return;
@@ -54,6 +62,7 @@ export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
 
     function cancelSwipe() {
       animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
+      onDragProgress?.(0);
     }
 
     useImperativeHandle(

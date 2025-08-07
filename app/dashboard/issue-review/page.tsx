@@ -122,6 +122,8 @@ export default function IssueReviewPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [current]);
 
+  const [dragProgress, setDragProgress] = useState(0);
+
   const percentDone = useMemo(() => {
     if (items.length === 0) return 0;
     return Math.round((index / items.length) * 100);
@@ -198,9 +200,15 @@ export default function IssueReviewPage() {
             <motion.div
               aria-hidden
               className="pointer-events-none absolute inset-x-0 top-[8%] z-0 mx-auto w-[95%]"
-              initial={{ opacity: 0.4, scale: 0.96, y: 10 }}
-              animate={{ opacity: 1, scale: 0.96, y: 10 }}
-              transition={{ type: "spring", stiffness: 200, damping: 24 }}
+              initial={{ opacity: 0.35, scale: 0.94, y: 18, filter: "blur(1.5px)" }}
+              animate={{
+                // As the top card is dragged, subtly react to it
+                opacity: 0.5 + Math.min(0.1, Math.abs(dragProgress) * 0.1),
+                scale: 0.94 + Math.min(0.01, Math.abs(dragProgress) * 0.01),
+                y: 18 - Math.min(6, Math.abs(dragProgress) * 6),
+                filter: `blur(${Math.max(0.5, 2 - Math.abs(dragProgress) * 1.5)}px)`,
+              }}
+              transition={{ type: "spring", stiffness: 200, damping: 26 }}
             >
               <Card className="overflow-hidden">
                 <CardHeader className="gap-2">
@@ -220,46 +228,54 @@ export default function IssueReviewPage() {
           )}
 
           {/* Active draggable card */}
-          <TinderCard
+          <motion.div
             key={current.id}
-            ref={cardRef}
+            initial={{ y: 10, scale: 0.96, opacity: 0.98 }}
+            animate={{ y: 0, scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 220, damping: 24 }}
             className="z-20 w-full"
-            onSwipe={(dir) => onSwipe(dir, current)}
           >
-            <Card className="overflow-hidden">
-              <CardHeader className="gap-2">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <IconBrandGithub />
-                  <span className="truncate">{current.title}</span>
-                </CardTitle>
-                <CardDescription>
-                  {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #{current.number}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <pre className="whitespace-pre-wrap text-sm max-h-[50vh] overflow-auto bg-muted/40 p-4 rounded-lg">
-                  {current.body || "No description provided."}
-                </pre>
-              </CardContent>
-              <CardFooter className="justify-between">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => cardRef.current?.swipeLeft()}
-                    aria-label="Request changes"
-                  >
-                    <IconCircleX /> Request Changes
-                  </Button>
-                  <Button onClick={() => cardRef.current?.swipeRight()} aria-label="Approve">
-                    <IconCircleCheck /> Approve
-                  </Button>
-                </div>
-                <Link href={current.html_url} target="_blank" className="text-sm underline">
-                  Open on GitHub
-                </Link>
-              </CardFooter>
-            </Card>
-          </TinderCard>
+            <TinderCard
+              ref={cardRef}
+              className="w-full"
+              onSwipe={(dir) => onSwipe(dir, current)}
+              onDragProgress={setDragProgress}
+            >
+              <Card className="overflow-hidden">
+                <CardHeader className="gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconBrandGithub />
+                    <span className="truncate">{current.title}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #{current.number}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <pre className="whitespace-pre-wrap text-sm max-h-[50vh] overflow-auto bg-muted/40 p-4 rounded-lg">
+                    {current.body || "No description provided."}
+                  </pre>
+                </CardContent>
+                <CardFooter className="justify-between">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => cardRef.current?.swipeLeft()}
+                      aria-label="Request changes"
+                    >
+                      <IconCircleX /> Request Changes
+                    </Button>
+                    <Button onClick={() => cardRef.current?.swipeRight()} aria-label="Approve">
+                      <IconCircleCheck /> Approve
+                    </Button>
+                  </div>
+                  <Link href={current.html_url} target="_blank" className="text-sm underline">
+                    Open on GitHub
+                  </Link>
+                </CardFooter>
+              </Card>
+            </TinderCard>
+          </motion.div>
         </div>
       )}
     </div>
