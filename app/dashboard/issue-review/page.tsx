@@ -9,6 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { IconBrandGithub, IconCircleCheck, IconCircleX, IconRefresh } from "@tabler/icons-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -30,16 +32,31 @@ export default function IssueReviewPage() {
   const [index, setIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [useMock, setUseMock] = useState(false);
 
   useEffect(() => {
     const fetchIssues = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/github/issues");
-        if (!res.ok) throw new Error("Failed to load issues");
-        const data = (await res.json()) as IssueLike[];
-        setItems(data);
+        let data: IssueLike[] = [];
+        if (useMock) {
+          const resMock = await fetch("/api/github/issues?mock=1");
+          if (!resMock.ok) throw new Error("Failed to load mock issues");
+          data = (await resMock.json()) as IssueLike[];
+        } else {
+          const res = await fetch("/api/github/issues");
+          if (!res.ok) throw new Error("Failed to load issues");
+          data = (await res.json()) as IssueLike[];
+          if (Array.isArray(data) && data.length === 0) {
+            // Auto-fallback to mock when live returns empty
+            const resMock = await fetch("/api/github/issues?mock=1");
+            if (resMock.ok) {
+              data = (await resMock.json()) as IssueLike[];
+            }
+          }
+        }
+        setItems(Array.isArray(data) ? data : []);
         setIndex(0);
       } catch (e: any) {
         setError(e?.message ?? "Unknown error");
@@ -48,7 +65,16 @@ export default function IssueReviewPage() {
       }
     };
     fetchIssues();
-  }, []);
+  }, [useMock]);
+
+  const reload = () => {
+    // trigger effect by toggling a dummy state or call fetch inline
+    setError(null);
+    setIndex(0);
+    // flip useMock twice to retrigger effect without changing value
+    setUseMock((v) => !v);
+    setTimeout(() => setUseMock((v) => !v), 0);
+  };
 
   const current = items[index];
 
@@ -92,8 +118,16 @@ export default function IssueReviewPage() {
   return (
     <div className="px-4 lg:px-6">
       <div className="flex items-center justify-between mb-4">
-        <div className="text-sm text-muted-foreground">Progress: {percentDone}%</div>
-        <Button size="sm" variant="outline" onClick={() => location.reload()}>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">Progress: {percentDone}%</div>
+          <div className="flex items-center gap-2">
+            <Switch id="use-mock" checked={useMock} onCheckedChange={setUseMock} />
+            <Label htmlFor="use-mock" className="text-sm">
+              Use mock data
+            </Label>
+          </div>
+        </div>
+        <Button size="sm" variant="outline" onClick={reload}>
           <IconRefresh /> Refresh
         </Button>
       </div>
@@ -117,9 +151,16 @@ export default function IssueReviewPage() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button variant="destructive" onClick={() => location.reload()}>
-              Retry
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="destructive" onClick={reload}>
+                Retry
+              </Button>
+              {!useMock && (
+                <Button variant="outline" onClick={() => setUseMock(true)}>
+                  Load mock data
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
       )}

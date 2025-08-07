@@ -55,4 +55,16 @@ export default defineSchema({
       })
     ),
   }).index("by_userId", ["userId"]),
+
+  // Mock issues/prs for local testing of the swipe UI
+  mockIssues: defineTable({
+    id: v.string(),
+    title: v.string(),
+    body: v.string(),
+    number: v.number(),
+    html_url: v.string(),
+    repository: v.string(),
+    author: v.string(),
+    isPullRequest: v.boolean(),
+  }).index("by_repository_and_number", ["repository", "number"]),
 });

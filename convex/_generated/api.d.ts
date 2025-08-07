@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as githubSettings from "../githubSettings.js";
 import type * as http from "../http.js";
+import type * as mockIssues from "../mockIssues.js";
 import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
 import type * as paymentAttempts from "../paymentAttempts.js";
 import type * as swipeSessions from "../swipeSessions.js";
@@ -32,6 +33,7 @@ import type * as users from "../users.js";
 declare const fullApi: ApiFromModules<{
   githubSettings: typeof githubSettings;
   http: typeof http;
+  mockIssues: typeof mockIssues;
   paymentAttemptTypes: typeof paymentAttemptTypes;
   paymentAttempts: typeof paymentAttempts;
   swipeSessions: typeof swipeSessions;
