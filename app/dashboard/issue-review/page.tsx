@@ -13,8 +13,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { IconBrandGithub, IconCircleCheck, IconCircleX, IconRefresh } from "@tabler/icons-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useSwipeable } from "react-swipeable";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "motion/react";
+import { TinderCard, type TinderCardHandle } from "@/components/swipe/TinderCard";
 
 type IssueLike = {
   id: string;
@@ -33,6 +34,7 @@ export default function IssueReviewPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useMock, setUseMock] = useState(false);
+  const cardRef = useRef<TinderCardHandle | null>(null);
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -77,8 +79,9 @@ export default function IssueReviewPage() {
   };
 
   const current = items[index];
+  const nextItem = items[index + 1];
 
-  const onSwipe = async (dir: "left" | "right") => {
+  const onSwipe = async (dir: "left" | "right", item: IssueLike) => {
     // Log to Convex and optionally post a GitHub review (server does both)
     try {
       await fetch("/api/github/swipe", {
@@ -86,15 +89,15 @@ export default function IssueReviewPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           item: {
-            id: current.id,
-            repository: current.repository,
-            number: current.number,
-            isPullRequest: current.isPullRequest,
+            id: item.id,
+            repository: item.repository,
+            number: item.number,
+            isPullRequest: item.isPullRequest,
           },
           decision:
             dir === "right"
               ? "APPROVE"
-              : current.isPullRequest
+              : item.isPullRequest
                 ? "REQUEST_CHANGES"
                 : "NEEDS_DISCUSSION",
         }),
@@ -103,12 +106,21 @@ export default function IssueReviewPage() {
     setIndex((i) => Math.min(i + 1, items.length));
   };
 
-  const swipeHandlers = useSwipeable({
-    onSwipedLeft: () => onSwipe("left"),
-    onSwipedRight: () => onSwipe("right"),
-    trackMouse: true,
-    preventScrollOnSwipe: true,
-  });
+  // Keyboard shortcuts for swiping
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!current) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        cardRef.current?.swipeLeft();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        cardRef.current?.swipeRight();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [current]);
 
   const percentDone = useMemo(() => {
     if (items.length === 0) return 0;
@@ -180,8 +192,40 @@ export default function IssueReviewPage() {
       )}
 
       {current && (
-        <div className="relative max-w-3xl mx-auto">
-          <div {...swipeHandlers} className="select-none">
+        <div className="relative mx-auto grid h-[70vh] max-w-3xl place-items-center">
+          {/* Next card preview underneath */}
+          {nextItem && (
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-[8%] z-0 mx-auto w-[95%]"
+              initial={{ opacity: 0.4, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 0.96, y: 10 }}
+              transition={{ type: "spring", stiffness: 200, damping: 24 }}
+            >
+              <Card className="overflow-hidden">
+                <CardHeader className="gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconBrandGithub />
+                    <span className="truncate">{nextItem.title}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {nextItem.isPullRequest ? "Pull Request" : "Issue"} • {nextItem.repository} • #{nextItem.number}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[40vh] overflow-hidden rounded-lg bg-muted/40" />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {/* Active draggable card */}
+          <TinderCard
+            key={current.id}
+            ref={cardRef}
+            className="z-20 w-full"
+            onSwipe={(dir) => onSwipe(dir, current)}
+          >
             <Card className="overflow-hidden">
               <CardHeader className="gap-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -189,8 +233,7 @@ export default function IssueReviewPage() {
                   <span className="truncate">{current.title}</span>
                 </CardTitle>
                 <CardDescription>
-                  {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #
-                  {current.number}
+                  {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #{current.number}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -202,12 +245,12 @@ export default function IssueReviewPage() {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => onSwipe("left")}
+                    onClick={() => cardRef.current?.swipeLeft()}
                     aria-label="Request changes"
                   >
                     <IconCircleX /> Request Changes
                   </Button>
-                  <Button onClick={() => onSwipe("right")} aria-label="Approve">
+                  <Button onClick={() => cardRef.current?.swipeRight()} aria-label="Approve">
                     <IconCircleCheck /> Approve
                   </Button>
                 </div>
@@ -216,7 +259,7 @@ export default function IssueReviewPage() {
                 </Link>
               </CardFooter>
             </Card>
-          </div>
+          </TinderCard>
         </div>
       )}
     </div>
