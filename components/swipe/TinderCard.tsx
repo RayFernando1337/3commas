@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from "react";
 import { motion, useMotionValue, useTransform, animate, useMotionValueEvent } from "motion/react";
 import { cn } from "@/lib/utils";
 import { IconCircleCheck, IconCircleX } from "@tabler/icons-react";
@@ -24,15 +24,23 @@ export type TinderCardProps = {
 export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
   ({ className, onSwipe, renderBadges = true, children, threshold = 120, onDragProgress }, ref) => {
     const x = useMotionValue(0);
-    const rotate = useTransform(x, [-240, 0, 240], [-10, 0, 10]);
-    const scale = useTransform(x, [-200, 0, 200], [1.02, 1, 1.02]);
-    const shadow = useTransform(x, [-240, 0, 240], [0.25, 0.1, 0.25]);
+    const rotate = useTransform(x, [-240, 0, 240], [-8, 0, 8]);
+    const scale = useTransform(x, [-200, 0, 200], [1.01, 1, 1.01]);
+    const shadow = useTransform(x, [-240, 0, 240], [0.25, 0.12, 0.25]);
 
     const rightOpacity = useTransform(x, [0, threshold], [0, 1]);
     const leftOpacity = useTransform(x, [-threshold, 0], [1, 0]);
 
     const isExitingRef = useRef(false);
     const [isDragging, setIsDragging] = useState(false);
+
+    // Reset exiting state when component mounts/unmounts
+    useEffect(() => {
+      isExitingRef.current = false;
+      return () => {
+        isExitingRef.current = false;
+      };
+    }, []);
 
     // Notify parent about drag progress for background animations
     useMotionValueEvent(x, "change", (latest) => {
@@ -54,6 +62,8 @@ export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
         damping: 35,
         onComplete: () => {
           onSwipe?.(direction);
+          // Reset for next card
+          isExitingRef.current = false;
         },
       });
 
@@ -61,7 +71,7 @@ export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
     }
 
     function cancelSwipe() {
-      animate(x, 0, { type: "spring", stiffness: 350, damping: 28 });
+      animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
       onDragProgress?.(0);
     }
 
@@ -95,8 +105,9 @@ export const TinderCard = forwardRef<TinderCardHandle, TinderCardProps>(
             cancelSwipe();
           }
         }}
-        whileTap={{ scale: 0.995 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        whileTap={{ scale: 0.99 }}
+        whileHover={{ scale: 1.005 }}
+        transition={{ type: "spring", stiffness: 320, damping: 32 }}
       >
         {/* Decision overlays */}
         {renderBadges && (

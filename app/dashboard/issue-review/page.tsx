@@ -80,6 +80,12 @@ export default function IssueReviewPage() {
 
   const current = items[index];
   const nextItem = items[index + 1];
+  const thirdItem = items[index + 2];
+
+  // Reset drag progress when current item changes to ensure clean state
+  useEffect(() => {
+    setDragProgress(0);
+  }, [current?.id]);
 
   const onSwipe = async (dir: "left" | "right", item: IssueLike) => {
     // Log to Convex and optionally post a GitHub review (server does both)
@@ -103,6 +109,9 @@ export default function IssueReviewPage() {
         }),
       });
     } catch {}
+    
+    // Reset drag progress to ensure clean state for next card
+    setDragProgress(0);
     setIndex((i) => Math.min(i + 1, items.length));
   };
 
@@ -195,20 +204,54 @@ export default function IssueReviewPage() {
 
       {current && (
         <div className="relative mx-auto grid h-[70vh] max-w-3xl place-items-center">
+          {/* Third card in stack (deepest) */}
+          {thirdItem && (
+            <motion.div
+              key={`third-${thirdItem.id}`}
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-[12%] z-[-1] mx-auto w-[90%]"
+              initial={{ opacity: 0.2, scale: 0.88, y: 24, filter: "blur(3px)" }}
+              animate={{ opacity: 0.25, scale: 0.88, y: 24, filter: "blur(3px)" }}
+              transition={{ type: "spring", stiffness: 200, damping: 30 }}
+            >
+              <Card className="overflow-hidden">
+                <CardHeader className="gap-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <IconBrandGithub />
+                    <span className="truncate">{thirdItem.title}</span>
+                  </CardTitle>
+                  <CardDescription>
+                    {thirdItem.isPullRequest ? "Pull Request" : "Issue"} • {thirdItem.repository} • #{thirdItem.number}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[40vh] overflow-hidden rounded-lg bg-muted/40" />
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
           {/* Next card preview underneath */}
           {nextItem && (
             <motion.div
+              key={`next-${nextItem.id}`}
               aria-hidden
               className="pointer-events-none absolute inset-x-0 top-[8%] z-0 mx-auto w-[95%]"
-              initial={{ opacity: 0.35, scale: 0.94, y: 18, filter: "blur(1.5px)" }}
+              initial={{ opacity: 0.35, scale: 0.94, y: 18, filter: "blur(2px)" }}
               animate={{
                 // As the top card is dragged, subtly react to it
-                opacity: 0.5 + Math.min(0.1, Math.abs(dragProgress) * 0.1),
-                scale: 0.94 + Math.min(0.01, Math.abs(dragProgress) * 0.01),
-                y: 18 - Math.min(6, Math.abs(dragProgress) * 6),
+                opacity: Math.max(0.35, 0.45 + Math.min(0.1, Math.abs(dragProgress) * 0.15)),
+                scale: Math.max(0.94, 0.94 + Math.min(0.015, Math.abs(dragProgress) * 0.015)),
+                y: Math.max(12, 18 - Math.min(6, Math.abs(dragProgress) * 6)),
                 filter: `blur(${Math.max(0.5, 2 - Math.abs(dragProgress) * 1.5)}px)`,
               }}
-              transition={{ type: "spring", stiffness: 200, damping: 26 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 260, 
+                damping: 28,
+                // Faster transition when dragProgress resets to 0
+                duration: dragProgress === 0 ? 0.3 : undefined
+              }}
             >
               <Card className="overflow-hidden">
                 <CardHeader className="gap-2">
@@ -230,9 +273,13 @@ export default function IssueReviewPage() {
           {/* Active draggable card */}
           <motion.div
             key={current.id}
-            initial={{ y: 10, scale: 0.96, opacity: 0.98 }}
+            initial={{ y: 10, scale: 0.96, opacity: 0.9 }}
             animate={{ y: 0, scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 220, damping: 24 }}
+            transition={{ 
+              type: "spring", 
+              stiffness: 300, 
+              damping: 30
+            }}
             className="z-20 w-full"
           >
             <TinderCard
