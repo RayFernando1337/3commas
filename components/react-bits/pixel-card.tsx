@@ -1,6 +1,5 @@
-'use client'
-import { useEffect, useRef } from "react";
-import { JSX } from "react";
+"use client";
+import { JSX, useEffect, useRef } from "react";
 
 class Pixel {
   width: number;
@@ -58,12 +57,7 @@ class Pixel {
   draw() {
     const centerOffset = this.maxSizeInteger * 0.5 - this.size * 0.5;
     this.ctx.fillStyle = this.color;
-    this.ctx.fillRect(
-      this.x + centerOffset,
-      this.y + centerOffset,
-      this.size,
-      this.size
-    );
+    this.ctx.fillRect(this.x + centerOffset, this.y + centerOffset, this.size, this.size);
   }
 
   appear() {
@@ -184,12 +178,10 @@ export default function PixelCard({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pixelsRef = useRef<Pixel[]>([]);
-  const animationRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(
-    null
-  );
+  const animationRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const timePreviousRef = useRef(performance.now());
   const reducedMotion = useRef(
-    typeof window !== "undefined" 
+    typeof window !== "undefined"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false
   ).current;
@@ -217,8 +209,7 @@ export default function PixelCard({
     const pxs = [];
     for (let x = 0; x < width; x += parseInt(finalGap.toString(), 10)) {
       for (let y = 0; y < height; y += parseInt(finalGap.toString(), 10)) {
-        const color =
-          colorsArray[Math.floor(Math.random() * colorsArray.length)];
+        const color = colorsArray[Math.floor(Math.random() * colorsArray.length)];
 
         const dx = x - width / 2;
         const dy = y - height / 2;
@@ -307,7 +298,7 @@ export default function PixelCard({
   return (
     <div
       ref={containerRef}
-      className={` relative overflow-hidden grid place-items-center  border rounded-[25px] isolate transition-colors duration-200 ease-[cubic-bezier(0.5,1,0.89,1)] select-none ${className}`}
+      className={` relative overflow-hidden grid place-items-center  border rounded-3xl isolate transition-colors duration-200 ease-[cubic-bezier(0.5,1,0.89,1)] select-none ${className}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onFocus={finalNoFocus ? undefined : onFocus}
