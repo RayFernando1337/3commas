@@ -1,83 +1,93 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { useSwipeable } from "react-swipeable"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { IconBrandGithub, IconCircleCheck, IconCircleX, IconRefresh } from "@tabler/icons-react"
-import Link from "next/link"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { IconBrandGithub, IconCircleCheck, IconCircleX, IconRefresh } from "@tabler/icons-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSwipeable } from "react-swipeable";
 
 type IssueLike = {
-  id: string
-  title: string
-  body: string
-  number: number
-  html_url: string
-  repository: string
-  author: string
-  isPullRequest: boolean
-}
+  id: string;
+  title: string;
+  body: string;
+  number: number;
+  html_url: string;
+  repository: string;
+  author: string;
+  isPullRequest: boolean;
+};
 
 export default function IssueReviewPage() {
-  const [items, setItems] = useState<IssueLike[]>([])
-  const [index, setIndex] = useState(0)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [items, setItems] = useState<IssueLike[]>([]);
+  const [index, setIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchIssues = async () => {
-      setIsLoading(true)
-      setError(null)
+      setIsLoading(true);
+      setError(null);
       try {
-        const res = await fetch("/api/github/issues")
-        if (!res.ok) throw new Error("Failed to load issues")
-        const data = (await res.json()) as IssueLike[]
-        setItems(data)
-        setIndex(0)
+        const res = await fetch("/api/github/issues");
+        if (!res.ok) throw new Error("Failed to load issues");
+        const data = (await res.json()) as IssueLike[];
+        setItems(data);
+        setIndex(0);
       } catch (e: any) {
-        setError(e?.message ?? "Unknown error")
+        setError(e?.message ?? "Unknown error");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
-    fetchIssues()
-  }, [])
+    };
+    fetchIssues();
+  }, []);
 
-  const current = items[index]
+  const current = items[index];
 
   const onSwipe = async (dir: "left" | "right") => {
-    // If it's a PR, optionally create a review
-    if (current?.isPullRequest) {
-      try {
-        await fetch("/api/github/review", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+    // Log to Convex and optionally post a GitHub review (server does both)
+    try {
+      await fetch("/api/github/swipe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item: {
+            id: current.id,
             repository: current.repository,
             number: current.number,
-            decision: dir === "right" ? "APPROVE" : "REQUEST_CHANGES",
-            body:
-              dir === "right"
-                ? "Approved via Swipe Reviewer ✅"
-                : "Requesting changes via Swipe Reviewer ❌",
-          }),
-        })
-      } catch {}
-    }
-    setIndex((i) => Math.min(i + 1, items.length))
-  }
+            isPullRequest: current.isPullRequest,
+          },
+          decision:
+            dir === "right"
+              ? "APPROVE"
+              : current.isPullRequest
+                ? "REQUEST_CHANGES"
+                : "NEEDS_DISCUSSION",
+        }),
+      });
+    } catch {}
+    setIndex((i) => Math.min(i + 1, items.length));
+  };
 
   const swipeHandlers = useSwipeable({
     onSwipedLeft: () => onSwipe("left"),
     onSwipedRight: () => onSwipe("right"),
     trackMouse: true,
     preventScrollOnSwipe: true,
-  })
+  });
 
   const percentDone = useMemo(() => {
-    if (items.length === 0) return 0
-    return Math.round((index / items.length) * 100)
-  }, [index, items.length])
+    if (items.length === 0) return 0;
+    return Math.round((index / items.length) * 100);
+  }, [index, items.length]);
 
   return (
     <div className="px-4 lg:px-6">
@@ -107,7 +117,9 @@ export default function IssueReviewPage() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardFooter>
-            <Button variant="destructive" onClick={() => location.reload()}>Retry</Button>
+            <Button variant="destructive" onClick={() => location.reload()}>
+              Retry
+            </Button>
           </CardFooter>
         </Card>
       )}
@@ -128,10 +140,7 @@ export default function IssueReviewPage() {
 
       {current && (
         <div className="relative max-w-3xl mx-auto">
-          <div
-            {...swipeHandlers}
-            className="select-none"
-          >
+          <div {...swipeHandlers} className="select-none">
             <Card className="overflow-hidden">
               <CardHeader className="gap-2">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -139,7 +148,8 @@ export default function IssueReviewPage() {
                   <span className="truncate">{current.title}</span>
                 </CardTitle>
                 <CardDescription>
-                  {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #{current.number}
+                  {current.isPullRequest ? "Pull Request" : "Issue"} • {current.repository} • #
+                  {current.number}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -169,7 +179,5 @@ export default function IssueReviewPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
-
-

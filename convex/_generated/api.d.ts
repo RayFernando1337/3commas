@@ -13,9 +13,12 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as githubSettings from "../githubSettings.js";
 import type * as http from "../http.js";
 import type * as paymentAttemptTypes from "../paymentAttemptTypes.js";
 import type * as paymentAttempts from "../paymentAttempts.js";
+import type * as swipeSessions from "../swipeSessions.js";
+import type * as swipes from "../swipes.js";
 import type * as users from "../users.js";
 
 /**
@@ -27,9 +30,12 @@ import type * as users from "../users.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  githubSettings: typeof githubSettings;
   http: typeof http;
   paymentAttemptTypes: typeof paymentAttemptTypes;
   paymentAttempts: typeof paymentAttempts;
+  swipeSessions: typeof swipeSessions;
+  swipes: typeof swipes;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
